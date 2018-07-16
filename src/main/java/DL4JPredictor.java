@@ -42,39 +42,34 @@ public class DL4JPredictor extends Predictor{
 
     @Override
     public INDArray[] predictBatch(String[] images) {
+        
+        
         Model model=this.getModel();
         INDArray input;
         List <INDArray> linputs=new ArrayList<INDArray>();
         Function<String,INDArray> f= model.getPreProcessor();
-        for(String image:images)
-        {
-            input=model.getPreProcessor().apply(image);
-            linputs.add(input);
-        }
-        INDArray []inputs=new INDArray[linputs.size()];
-        inputs=linputs.toArray(inputs);
-        
         org.deeplearning4j.nn.api.Model m=model.getDeepModel();
-        
+        List <INDArray> loutputs=new ArrayList<INDArray>();
         if(m instanceof ComputationGraph)
         {
             ComputationGraph graph=(ComputationGraph)m;
-            INDArray[] output=graph.output(false,inputs);
-            for(int i=0;i<output.length;i++)
+            for(String image :images)
             {
-                output[i]=Nd4j.sortWithIndices(output[i], 0, false)[0];
+                input=model.getPreProcessor().apply(image);
+                INDArray[] output=graph.output(false,input);
+                INDArray output2=Nd4j.sortWithIndices(output[0],1,false)[0];
+                loutputs.add(output2);
             }
-            return output;
-        }
-            
-        else
-        {
+            INDArray []outputs=new INDArray[loutputs.size()];
+            outputs=loutputs.toArray(outputs);
+            return outputs;
+        }else{
             MultiLayerNetwork graph=(MultiLayerNetwork)m;
-            List <INDArray> loutputs=new ArrayList<INDArray>();
-            for (INDArray i:inputs)
+            for (String image:images)
             {
-                INDArray output=graph.output(i);
-                output=Nd4j.sortWithIndices(output,0,false)[0];
+                input=model.getPreProcessor().apply(image);
+                INDArray output=graph.output(input);
+                output=Nd4j.sortWithIndices(output,1,false)[0];
                 loutputs.add(output);
             }
             INDArray []outputs=new INDArray[loutputs.size()];
